@@ -1,10 +1,10 @@
 #include <Arduboy2.h>
 #include "images.h"
 
-#define FPS 60
+#define FPS 75
 #define GROUND_LEVEL 55
 #define DINO_GROUND_LEVEL GROUND_LEVEL + 7
-#define CACTUS_GROUND_LEVEL GROUND_LEVEL + 3
+#define CACTUS_GROUND_LEVEL GROUND_LEVEL + 8
 #define NUMBER_OF_OBSTACLES 3
 #define LAUNCH_DELAY_MIN 90
 #define LAUNCH_DELAY_MAX 200
