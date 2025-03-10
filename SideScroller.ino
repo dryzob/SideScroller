@@ -1,9 +1,15 @@
 #include <Arduboy2.h>
 #include "images.h"
 
-#define FPS 75
+#define FPS 60
 #define GROUND_LEVEL 55
 #define DINO_GROUND_LEVEL GROUND_LEVEL + 7
+#define CACTUS_GROUND_LEVEL GROUND_LEVEL + 3
+#define NUMBER_OF_OBSTACLES 3
+#define LAUNCH_DELAY_MIN 90
+#define LAUNCH_DELAY_MAX 200
+#define PTERODACTYL_UPPER_LIMIT 27
+#define PTERODACTYL_LOWER_LIMIT 48
 
 enum class GroundType : uint8_t {
   Flat,
@@ -21,6 +27,15 @@ enum class Stance : uint8_t {
   Dead2,
 };
 
+enum class ObstacleType : uint8_t {
+  SingleCactus,
+  DoubleCactus,
+  TripleCactus,
+  Pterodactyl1,
+  Pterodactyl2,
+  Count_AllObstacles = 4
+};
+
 struct Dino {
   uint8_t x;
   uint8_t y;
@@ -31,8 +46,18 @@ struct Dino {
   const uint8_t *mask;
 };
 
+struct Obstacle {
+  int8_t x;
+  uint8_t y;
+  ObstacleType type;
+  bool enabled;
+  const uint8_t *image;
+};
+
 Arduboy2 arduboy;
 uint8_t groundX = 0;
+uint8_t obstacleLaunchCountdown = LAUNCH_DELAY_MAX;
+uint16_t score = 0;
 
 GroundType ground[5] = { // This is the initial layout for the road before the random comes in
   GroundType::Flat,
@@ -43,6 +68,11 @@ GroundType ground[5] = { // This is the initial layout for the road before the r
 };
 
 Dino dino = {0, DINO_GROUND_LEVEL, Stance::Standing, false, 0, dinosaur_still, dinosaur_still_mask};
+Obstacle obstacles[NUMBER_OF_OBSTACLES] = {
+      { 0, 0, ObstacleType::Pterodactyl1, false, pterodactyl_1 },
+      { 0, 0, ObstacleType::Pterodactyl1, false, pterodactyl_1 },
+      { 0, 0, ObstacleType::Pterodactyl1, false, pterodactyl_1 },
+};
 
 uint8_t jumpCoords[] = {DINO_GROUND_LEVEL, DINO_GROUND_LEVEL-2, DINO_GROUND_LEVEL-5, DINO_GROUND_LEVEL-7, 
                         DINO_GROUND_LEVEL-9, DINO_GROUND_LEVEL-11, DINO_GROUND_LEVEL-13, DINO_GROUND_LEVEL-14,
@@ -60,11 +90,11 @@ const uint8_t *dino_images[] = {dinosaur_still,
                                 dinosaur_running_1, dinosaur_running_2, 
                                 dinosaur_ducking_1, dinosaur_ducking_2, 
                                 dinosaur_dead_1, dinosaur_dead_2};
-
 const uint8_t *dino_masks[] = {dinosaur_still_mask, 
                                dinosaur_running_1_mask, dinosaur_running_2_mask, 
                                dinosaur_ducking_1_mask, dinosaur_ducking_2_mask, 
                                dinosaur_dead_2_mask, dinosaur_dead_2_mask};
+const uint8_t *obstacle_images[] = {cactus_1, cactus_2, cactus_3, pterodactyl_1, pterodactyl_2};
 
 void setup() {
   arduboy.begin();
@@ -79,9 +109,15 @@ void loop() {
 
   controlDino();
   updateDino();
+  updateObstacles();
 
+  obstacleLauncher();
+
+  drawObstacles();
   renderGround();
   drawDino();
+
+  if(arduboy.everyXFrames(3)) score++;
 
   arduboy.display();
 }
@@ -155,7 +191,7 @@ void updateDino() {
       dino.y = DINO_GROUND_LEVEL;
     }
   } else {
-    if(arduboy.everyXFrames(3)) {
+    if(arduboy.everyXFrames(6)) {
       switch(dino.stance) {
         case Stance::Running1:
           dino.stance = Stance::Running2;
@@ -184,6 +220,91 @@ void updateDino() {
   }
 }
 
+void obstacleLauncher() {
+  --obstacleLaunchCountdown;
+  arduboy.println(obstacleLaunchCountdown);
+
+  if(obstacleLaunchCountdown == 0) {
+    for(uint8_t i = 0; i < NUMBER_OF_OBSTACLES; i++) {
+      if(!obstacles[i].enabled) {
+        launchObstacle(i);
+        break;
+      }
+    }
+    obstacleLaunchCountdown = random(LAUNCH_DELAY_MIN, LAUNCH_DELAY_MAX);
+  }
+}
+
+void launchObstacle(uint8_t obstacleNumber) {
+  // Choose obstacle
+
+  ObstacleType randomUpper = ObstacleType::SingleCactus;
+
+  switch(score) {
+    case 0 ... 99:
+      randomUpper = ObstacleType::SingleCactus;
+      break;
+    case 100 ... 199:
+      randomUpper = ObstacleType::DoubleCactus;
+      break;
+    case 200 ... 299:
+      randomUpper = ObstacleType::TripleCactus;
+      break;
+    default:
+      randomUpper = ObstacleType::Count_AllObstacles;
+      break;
+  }
+
+  uint8_t randomLowerVal = static_cast<uint8_t>(ObstacleType::SingleCactus);
+  uint8_t randomUpperVal = static_cast<uint8_t>(randomUpper);
+  uint8_t randomObstacle = random(randomLowerVal, randomUpperVal + 1);
+
+  ObstacleType type = static_cast<ObstacleType>(randomObstacle);
+
+  // Launch the obstacle ..
+  
+  obstacles[obstacleNumber].type = type;
+  obstacles[obstacleNumber].enabled = true;
+  obstacles[obstacleNumber].x = WIDTH - 1;
+
+  if(type == ObstacleType::Pterodactyl1) {
+    obstacles[obstacleNumber].y = random(PTERODACTYL_UPPER_LIMIT, PTERODACTYL_LOWER_LIMIT);
+  } else {
+    obstacles[obstacleNumber].y = CACTUS_GROUND_LEVEL;
+  }
+}
+
+void updateObstacles() {
+  for(uint8_t i = 0; i < NUMBER_OF_OBSTACLES; i++) {
+    if(obstacles[i].enabled == true) {
+      switch(obstacles[i].type) {
+        case ObstacleType::Pterodactyl1:
+        case ObstacleType::Pterodactyl2:
+          if(arduboy.everyXFrames(5)) {
+            if(obstacles[i].type == ObstacleType::Pterodactyl1) {
+              obstacles[i].type = ObstacleType::Pterodactyl2;
+            } else {
+              obstacles[i].type = ObstacleType::Pterodactyl1;
+            }
+          }
+          obstacles[i].x--;
+          break;
+        
+        case ObstacleType::SingleCactus:
+        case ObstacleType::DoubleCactus:
+        case ObstacleType::TripleCactus:
+          obstacles[i].x--;
+          break;
+      }
+
+      // Leaving view, delete
+      if (obstacles[i].x < -getImageWidth(obstacles[i].image)) {
+        obstacles[i].enabled = false;
+      }
+    }
+  }
+}
+
 void drawDino() {
   uint8_t imageIndex = static_cast<uint8_t>(dino.stance);
 
@@ -191,4 +312,15 @@ void drawDino() {
   dino.mask = dino_masks[imageIndex];
   Sprites::drawExternalMask(dino.x, dino.y - getImageHeight(dino.image), dino.image, dino.mask, 0, 0);
 
+}
+
+void drawObstacles() {
+  for(uint8_t i = 0; i < NUMBER_OF_OBSTACLES; i++) {
+    if (obstacles[i].enabled == true) {
+      uint8_t imageIndex = static_cast<uint8_t>(obstacles[i].type);
+
+      obstacles[i].image = obstacle_images[imageIndex];
+      Sprites::drawOverwrite(obstacles[i].x, obstacles[i].y - getImageHeight(obstacles[i].image), obstacles[i].image, 0);
+    }
+  }
 }
