@@ -74,16 +74,10 @@ Obstacle obstacles[NUMBER_OF_OBSTACLES] = {
       { 0, 0, ObstacleType::Pterodactyl1, false, pterodactyl_1 },
 };
 
-uint8_t jumpCoords[] = {DINO_GROUND_LEVEL, DINO_GROUND_LEVEL-2, DINO_GROUND_LEVEL-5, DINO_GROUND_LEVEL-7, 
-                        DINO_GROUND_LEVEL-9, DINO_GROUND_LEVEL-11, DINO_GROUND_LEVEL-13, DINO_GROUND_LEVEL-14,
-                        DINO_GROUND_LEVEL-16, DINO_GROUND_LEVEL-17, DINO_GROUND_LEVEL-19, DINO_GROUND_LEVEL-20,
-                        DINO_GROUND_LEVEL-21, DINO_GROUND_LEVEL-22, DINO_GROUND_LEVEL-23, DINO_GROUND_LEVEL-23,
-                        DINO_GROUND_LEVEL-24, DINO_GROUND_LEVEL-24, DINO_GROUND_LEVEL-25, DINO_GROUND_LEVEL-25,
-                        DINO_GROUND_LEVEL-25, DINO_GROUND_LEVEL-25, DINO_GROUND_LEVEL-25, DINO_GROUND_LEVEL-24,
-                        DINO_GROUND_LEVEL-24, DINO_GROUND_LEVEL-23, DINO_GROUND_LEVEL-23, DINO_GROUND_LEVEL-22,
-                        DINO_GROUND_LEVEL-21, DINO_GROUND_LEVEL-20, DINO_GROUND_LEVEL-19, DINO_GROUND_LEVEL-17,
-                        DINO_GROUND_LEVEL-16, DINO_GROUND_LEVEL-14, DINO_GROUND_LEVEL-13, DINO_GROUND_LEVEL-11,
-                        DINO_GROUND_LEVEL-9, DINO_GROUND_LEVEL-7, DINO_GROUND_LEVEL-5, DINO_GROUND_LEVEL-2, DINO_GROUND_LEVEL};
+uint8_t jumpCoords[] = {62, 60, 57, 55, 53, 51, 49, 47, 45, 44, 42, 40, 39, 38, 36, 35, 34, 33,
+                        32, 31, 30, 29, 29, 28, 27, 27, 27, 26, 26, 26, 26, 26, 26, 26, 27, 27,
+                        27, 28, 29, 29, 30, 31, 32, 33, 34, 35, 36, 38, 39, 40, 42, 44, 45, 47,
+                        49, 51, 53, 55, 57, 60, 62};
 
 const uint8_t *ground_images[] = {ground_flat, ground_bump, ground_hole};
 const uint8_t *dino_images[] = {dinosaur_still, 
