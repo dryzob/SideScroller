@@ -1,5 +1,6 @@
 #include <Arduboy2.h>
 #include "images.h"
+#include "EEPROMUtils.h"
 
 #define FPS 75
 #define GROUND_LEVEL 55
@@ -104,7 +105,7 @@ void introduction() {
   arduboy.setCursor(17, 12);
   arduboy.print(F("Press A to play!"));
 
-  drawGround(true);
+  renderGround(true);
   drawDino();
   drawScoreboard(false);
   arduboy.display();
@@ -159,14 +160,14 @@ void renderGround(bool idle) {
           groundType = GroundType::Hole;
           break;
       }
+      ground[0] = ground[1];
+      ground[1] = ground[2];
+      ground[2] = ground[3];
+      ground[3] = ground[4];
+      ground[4] = groundType;
+    
+      groundX++;
     }
-    ground[0] = ground[1];
-    ground[1] = ground[2];
-    ground[2] = ground[3];
-    ground[3] = ground[4];
-    ground[4] = groundType;
-  
-    groundX++;
 
   }
 
