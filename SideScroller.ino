@@ -29,6 +29,7 @@ uint8_t groundX = 0;
 uint8_t obstacleLaunchCountdown = LAUNCH_DELAY_MAX;
 uint16_t score = 0;
 uint16_t highScore = 0;
+uint8_t exitCounter = 0;
 
 #include "dinoFunctions.h"
 #include "obstacleFunctions.h"
@@ -52,6 +53,11 @@ void setup() {
 }
 
 void loop() {
+  if(!arduboy.nextFrame()) return;
+
+  arduboy.clear();
+  arduboy.pollButtons();
+  exit();
 
   switch(gameStatus) {
     case GameStatus::Introduction:
@@ -65,24 +71,20 @@ void loop() {
       break;
   }
 
-  // controlDino();
-  // updateDino();
-  // updateObstacles();
-  // collision();
-
-  // obstacleLauncher();
-
-  // drawObstacles();
-  // renderGround();
-  // drawDino();
-
-  // if(arduboy.everyXFrames(3)) score++;
-  // if(arduboy.everyXFrames(2)) arduboy.digitalWriteRGB(RED_LED, RGB_OFF);
-
   arduboy.display();
 }
 
-void initialiseGame() {
+void exit() {
+  static uint16_t exitTime = FPS * 2;
+  if(arduboy.pressed(UP_BUTTON | DOWN_BUTTON)) {
+    exitCounter++;
+  } else {
+    exitCounter = 0;
+  }
+  if(exitCounter >= exitTime) arduboy.exitToBootloader();
+}
+
+void initializeGame() {
 
   for(uint8_t i = 0; i < NUMBER_OF_OBSTACLES; i++) {
     obstacles[i].enabled = false;
@@ -98,9 +100,8 @@ void initialiseGame() {
 
 void introduction() {
   EEPROM.get(EEPROM_SCORE, highScore);
-  arduboy.clear();
 
-  initialiseGame();
+  initializeGame();
 
   arduboy.setCursor(17, 12);
   arduboy.print(F("Press A to play!"));
@@ -116,26 +117,69 @@ void introduction() {
   }
 }
 
+void playGame() {
+
+  controlDino();
+  updateDino();
+
+  updateObstacles();
+  if(collision()) {
+    gameStatus = GameStatus::GameOver;
+  }
+
+  obstacleLauncher();
+
+  renderGround(false);
+  drawObstacles();
+  drawDino();
+  drawScoreboard(true);
+
+  if(arduboy.everyXFrames(3)) score++;
+}
+
+void gameOver() {
+  renderGround(true);
+  drawObstacles();
+  drawDino();
+  drawScoreboard(true);
+
+  arduboy.fillRect(12, 12, WIDTH, 8, BLACK);
+  arduboy.setCursor(35, 12);
+  arduboy.print(F("Game Over"));
+  arduboy.setCursor(12, 20);
+  arduboy.print(F("Press A to restart"));
+
+  if(arduboy.justPressed(A_BUTTON)) {
+    gameStatus = GameStatus::PlayGame;
+    initializeGame();
+    dino.stance = Stance::Running1;
+  }
+}
+
 void drawScoreboard(bool displayScore) {
   arduboy.fillRect(0, 0, WIDTH, 10, BLACK);
 
-  if (displayScore) {
+  if(displayScore) {
     arduboy.setCursor(1, 0);
     arduboy.print(F("Score: "));
     arduboy.setCursor(39, 0);
-    if(score < 1000); arduboy.print(0);
-    if(score < 100); arduboy.print(0);
-    if(score < 10); arduboy.print(0);
+    if(score < 1000) arduboy.print(0);
+    if(score < 100) arduboy.print(0);
+    if(score < 10) arduboy.print(0);
     arduboy.print(score);
 
+  }
+
+  if(score >= highScore) {
+    highScore = score;
   }
 
   arduboy.setCursor(72, 0);
   arduboy.print(F("High: "));
   arduboy.setCursor(104, 0);
-  if(score < 1000); arduboy.print(0);
-  if(score < 100); arduboy.print(0);
-  if(score < 10); arduboy.print(0);
+  if(highScore < 1000) arduboy.print(0);
+  if(highScore < 100) arduboy.print(0);
+  if(highScore < 10) arduboy.print(0);
   arduboy.print(highScore);
 
   arduboy.drawLine(0, 9, WIDTH, 9, WHITE);
@@ -166,8 +210,9 @@ void renderGround(bool idle) {
       ground[3] = ground[4];
       ground[4] = groundType;
     
-      groundX++;
     }
+
+    groundX++;
 
   }
 
@@ -192,7 +237,7 @@ bool collision() {
                           getImageHeight(obstacles[i].image)};
 
       if(arduboy.collide(dinoRect, obstRect)) {
-        arduboy.digitalWriteRGB(RED_LED, RGB_ON);
+        // arduboy.digitalWriteRGB(RED_LED, RGB_ON);
         return true;
       }
     }
